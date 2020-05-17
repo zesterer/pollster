@@ -8,11 +8,11 @@
 //! ```
 
 use std::{
-    mem::forget,
     future::Future,
+    mem::forget,
     pin::Pin,
-    task::{Poll, Context, Waker, RawWaker, RawWakerVTable},
-    sync::{Condvar, Mutex, Arc},
+    sync::{Arc, Condvar, Mutex},
+    task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
 };
 
 #[derive(Copy, Clone, Eq, PartialEq, Debug)]
@@ -43,7 +43,7 @@ impl Signal {
             *state = SignalState::Empty;
             return;
         }
-        
+
         // state is either Empty or Waiting.
         // no other thread should be Waiting
         debug_assert_eq!(
@@ -65,7 +65,7 @@ impl Signal {
 
         match *state {
             // The signal was already notified
-            SignalState::Notified => {},
+            SignalState::Notified => {}
 
             // The signal wasnt notified but a thread isnt waiting on it
             // so no need to call into the Condvar to wake one up
@@ -76,27 +76,29 @@ impl Signal {
             SignalState::Waiting => {
                 *state = SignalState::Empty;
                 self.cond.notify_one();
-            },
+            }
         }
     }
 }
 
-static VTABLE: RawWakerVTable = unsafe { RawWakerVTable::new(
-    |signal| {
-        let arc = Arc::from_raw(signal);
-        let waker = RawWaker::new(Arc::into_raw(arc.clone()) as *const _, &VTABLE);
-        // Forget the original `Arc` because we don't actually own it and we don't want to lower
-        // its reference count.
-        forget(arc);
-        waker
-    },
-    // Notify and implicitly drop the Arc (`wake` takes ownership)
-    |signal| Arc::from_raw(signal as *const Signal).notify(),
-    // Notify without dropping the Arc (`wake_by_ref` does not take ownership)
-    |signal| (&*(signal as *const Signal)).notify(),
-    // Drop the Arc (will deallocate the signal if this is the last `RawWaker`)
-    |signal| drop(Arc::from_raw(signal as *const Signal)),
-) };
+static VTABLE: RawWakerVTable = unsafe {
+    RawWakerVTable::new(
+        |signal| {
+            let arc = Arc::from_raw(signal);
+            let waker = RawWaker::new(Arc::into_raw(arc.clone()) as *const _, &VTABLE);
+            // Forget the original `Arc` because we don't actually own it and we don't want to lower
+            // its reference count.
+            forget(arc);
+            waker
+        },
+        // Notify and implicitly drop the Arc (`wake` takes ownership)
+        |signal| Arc::from_raw(signal as *const Signal).notify(),
+        // Notify without dropping the Arc (`wake_by_ref` does not take ownership)
+        |signal| (&*(signal as *const Signal)).notify(),
+        // Drop the Arc (will deallocate the signal if this is the last `RawWaker`)
+        |signal| drop(Arc::from_raw(signal as *const Signal)),
+    )
+};
 
 /// Block the thread until the future is ready.
 ///
@@ -112,7 +114,12 @@ pub fn block_on<F: Future>(mut fut: F) -> F::Output {
 
     // Safe because the `Arc` is cloned and is still considered to have an owner until dropped in
     // the `RawWakerVTable` above.
-    let waker = unsafe { Waker::from_raw(RawWaker::new(Arc::into_raw(signal.clone()) as *const _, &VTABLE)) };
+    let waker = unsafe {
+        Waker::from_raw(RawWaker::new(
+            Arc::into_raw(signal.clone()) as *const _,
+            &VTABLE,
+        ))
+    };
 
     // Poll the future to completion
     loop {

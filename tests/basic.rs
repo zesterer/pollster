@@ -1,5 +1,5 @@
-use std::time::{Instant, Duration};
 use pollster;
+use std::time::{Duration, Instant};
 
 #[test]
 fn basic() {
@@ -16,10 +16,13 @@ fn basic() {
 
 #[test]
 fn mpsc() {
-    use std::{thread, sync::atomic::{AtomicUsize, Ordering::SeqCst}};
+    use std::{
+        sync::atomic::{AtomicUsize, Ordering::SeqCst},
+        thread,
+    };
     use tokio::sync::mpsc;
 
-    const BOUNDED : usize = 16;
+    const BOUNDED: usize = 16;
     const MESSAGES: usize = 100_000;
 
     let (mut a_tx, mut a_rx) = mpsc::channel(BOUNDED);
