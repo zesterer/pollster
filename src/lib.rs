@@ -81,10 +81,12 @@ impl Signal {
     }
 }
 
+type SignalArc = Arc<Signal>;
+
 static VTABLE: RawWakerVTable = unsafe {
     RawWakerVTable::new(
         |signal| {
-            let arc = Arc::from_raw(signal);
+            let arc = SignalArc::from_raw(signal as *const _);
             let waker = RawWaker::new(Arc::into_raw(arc.clone()) as *const _, &VTABLE);
             // Forget the original `Arc` because we don't actually own it and we don't want to lower
             // its reference count.
@@ -92,11 +94,11 @@ static VTABLE: RawWakerVTable = unsafe {
             waker
         },
         // Notify and implicitly drop the Arc (`wake` takes ownership)
-        |signal| Arc::from_raw(signal as *const Signal).notify(),
+        |signal| SignalArc::from_raw(signal as *const Signal).notify(),
         // Notify without dropping the Arc (`wake_by_ref` does not take ownership)
         |signal| (&*(signal as *const Signal)).notify(),
         // Drop the Arc (will deallocate the signal if this is the last `RawWaker`)
-        |signal| drop(Arc::from_raw(signal as *const Signal)),
+        |signal| drop(SignalArc::from_raw(signal as *const Signal)),
     )
 };
 
