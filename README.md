@@ -10,7 +10,15 @@ https://docs.rs/pollster)
 https://github.com/zesterer/pollster)
 
 ```rust
-let result = pollster::block_on(my_future);
+let my_fut = async {};
+let result = pollster::block_on(my_fut);
 ```
 
-That's it. That's all it does. Nothing more. No dependencies, no complexity. No need to drag in 50-odd dependencies to evaluate a future.
+That's it. That's all it does. Nothing more. No dependencies, no complexity. No need to pull in 50 crates to evaluate a
+future.
+
+Note that `pollster` will not work for *arbitrary* futures because some require a specific runtime or reactor. See
+[here](https://rust-lang.github.io/async-book/08_ecosystem/00_chapter.html#determining-ecosystem-compatibility) for more
+information about when and where `pollster` may be used. However, if you're already pulling in the required dependencies
+to create such a future in the first place, it's likely that you already have a version of `block_on` in your dependency
+tree that's designed to poll your future, so use that instead.
