@@ -21,6 +21,21 @@ use std::{
     task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
 };
 
+/// An extension trait that allows blocking on a future in suffix position.
+pub trait FutureExt: Future {
+    /// Block the thread until the future is ready.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// let my_fut = async {};
+    /// let result = pollster::block_on(my_fut);
+    /// ```
+    fn block_on(self) -> Self::Output where Self: Sized { block_on(self) }
+}
+
+impl<F: Future> FutureExt for F {}
+
 enum SignalState {
     Empty,
     Waiting,

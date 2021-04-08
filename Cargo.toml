@@ -1,6 +1,6 @@
 [package]
 name = "pollster"
-version = "0.2.2"
+version = "0.2.3"
 description = "A minimal async executor that lets you block on a future"
 categories = ["asynchronous", "concurrency"]
 keywords = ["async", "minimal", "executor", "runtime", "block_on"]
