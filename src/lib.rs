@@ -15,10 +15,9 @@
 
 use std::{
     future::Future,
-    mem::forget,
     pin::Pin,
     sync::{Arc, Condvar, Mutex},
-    task::{Context, Poll, RawWaker, RawWakerVTable, Waker},
+    task::{Context, Poll, Wake, Waker},
 };
 
 /// An extension trait that allows blocking on a future in suffix position.
@@ -101,43 +100,11 @@ impl Signal {
     }
 }
 
-// This type alias is important! It's put here so that it can be used elsewhere to prevent our pointer casts going out
-// of sync and producing references to incorrect types.
-type SignalArc = Arc<Signal>;
-
-// Safety: each `signal` is a valid `Arc` with a reference count of at least 1. Ergo, it is safe to turn it back into
-// an `Arc` provided we do not decrement the reference count.
-static VTABLE: RawWakerVTable = unsafe {
-    RawWakerVTable::new(
-        /* Clone */
-        |signal| {
-            // Take ownership of the `Arc` (i.e: don't change its reference count)
-            let arc = SignalArc::from_raw(signal as *const _);
-            // Clone the `Arc`, increasing the reference count: now we have at least two owners.
-            let waker = RawWaker::new(Arc::into_raw(arc.clone()) as *const _, &VTABLE);
-            // Forget the original because, although we previously took ownership, this function should behave 'as if'
-            // the ownership of the `Arc` did not change. Forgetting the `Arc` will prevent the reference count being
-            // decremented, thereby keeping the `Arc` alive.
-            forget(arc);
-            waker
-        },
-        /* Wake */
-        // Notify and implicitly drop the Arc (`wake` takes ownership)
-        |signal| {
-            let arc = SignalArc::from_raw(signal as *const _);
-            arc.notify();
-            // Drop our `Arc`, taking ownership of the inner value and dropping it also if we are the only owner.
-            drop(arc);
-        },
-        /* Wake by ref */
-        // Notify without dropping the Arc (`wake_by_ref` does not take ownership). We do this by ignoring the `Arc`
-        // abstraction entirely and dereferencing the inner value (which is still owned by the `Arc`).
-        |signal| (&*(signal as *const Signal)).notify(),
-        /* Drop */
-        // Drop the Arc (will deallocate the signal if this is the last `RawWaker`)
-        |signal| drop(SignalArc::from_raw(signal as *const Signal)),
-    )
-};
+impl Wake for Signal {
+    fn wake(self: Arc<Self>) {
+        self.notify();
+    }
+}
 
 /// Block the thread until the future is ready.
 ///
@@ -153,14 +120,9 @@ pub fn block_on<F: Future>(mut fut: F) -> F::Output {
     // the signal alive for far longer. `Arc` is a thread-safe way to allow this to happen.
     let signal = Arc::new(Signal::new());
 
-    // Safe because the `Arc` is cloned and is still considered to have an owner until dropped in
-    // the `RawWakerVTable` above (`Arc::into_raw` does not decrease the reference count).
-    let waker = unsafe {
-        Waker::from_raw(RawWaker::new(
-            Arc::into_raw(signal.clone()) as *const _,
-            &VTABLE,
-        ))
-    };
+    // Create a context that will be passed to the future.
+    let waker = Waker::from(Arc::clone(&signal));
+    let mut context = Context::from_waker(&waker);
 
     // Poll the future to completion
     loop {
@@ -170,7 +132,7 @@ pub fn block_on<F: Future>(mut fut: F) -> F::Output {
         // then flow control has already passed out of the region in which `fut` is required to be pinned (`fut.poll`).
         // Don't believe me? The `pin_mut!` macro in the crate `pin_utils` does the exact same thing.
         let fut = unsafe { Pin::new_unchecked(&mut fut) };
-        match fut.poll(&mut Context::from_waker(&waker)) {
+        match fut.poll(&mut context) {
             Poll::Pending => signal.wait(),
             Poll::Ready(item) => break item,
         }
