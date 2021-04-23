@@ -15,7 +15,6 @@
 
 use std::{
     future::Future,
-    pin::Pin,
     sync::{Arc, Condvar, Mutex},
     task::{Context, Poll, Wake, Waker},
 };
@@ -114,7 +113,10 @@ impl Wake for Signal {
 /// let my_fut = async {};
 /// let result = pollster::block_on(my_fut);
 /// ```
-pub fn block_on<F: Future>(mut fut: F) -> F::Output {
+pub fn block_on<F: Future>(fut: F) -> F::Output {
+    // Pin the future so that it can be polled.
+    let mut fut = Box::pin(fut);
+
     // Signal used to wake up the thread for polling as the future moves to completion. We need to use an `Arc`
     // because, although the lifetime of `fut` is limited to this function, the underlying IO abstraction might keep
     // the signal alive for far longer. `Arc` is a thread-safe way to allow this to happen.
@@ -126,13 +128,7 @@ pub fn block_on<F: Future>(mut fut: F) -> F::Output {
 
     // Poll the future to completion
     loop {
-        // Safe because `fut` isn't going to move until this function returns, at which point we've stopped polling
-        // anyway. This is also unwind-safe because `fut` is only required to be pinned for the duration of the
-        // function call. If an unwind past this function occurs (i.e: moving `fut` from its position on the stack),
-        // then flow control has already passed out of the region in which `fut` is required to be pinned (`fut.poll`).
-        // Don't believe me? The `pin_mut!` macro in the crate `pin_utils` does the exact same thing.
-        let fut = unsafe { Pin::new_unchecked(&mut fut) };
-        match fut.poll(&mut context) {
+        match fut.as_mut().poll(&mut context) {
             Poll::Pending => signal.wait(),
             Poll::Ready(item) => break item,
         }
