@@ -26,8 +26,9 @@ pub trait FutureExt: Future {
     /// # Example
     ///
     /// ```
+    /// use pollster::FutureExt;
     /// let my_fut = async {};
-    /// let result = pollster::block_on(my_fut);
+    /// let result = my_fut.block_on();
     /// ```
     fn block_on(self) -> Self::Output where Self: Sized { block_on(self) }
 }
