@@ -25,8 +25,8 @@ fn mpsc() {
     const BOUNDED: usize = 16;
     const MESSAGES: usize = 100_000;
 
-    let (mut a_tx, mut a_rx) = mpsc::channel(BOUNDED);
-    let (mut b_tx, mut b_rx) = mpsc::channel(BOUNDED);
+    let (a_tx, mut a_rx) = mpsc::channel(BOUNDED);
+    let (b_tx, mut b_rx) = mpsc::channel(BOUNDED);
 
     let thread_a = thread::spawn(move || {
         pollster::block_on(async {

@@ -12,4 +12,4 @@ readme = "README.md"
 
 [dev-dependencies]
 futures-timer = "3.0"
-tokio = { version = "0.2", features = ["sync"] }
+tokio = { version = "1", features = ["sync"] }
