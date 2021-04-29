@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 
 #[test]
 fn basic() {
-    let make_fut = || async_std::future::ready(42);
+    let make_fut = || std::future::ready(42);
 
     // Immediately ready
     assert_eq!(pollster::block_on(make_fut()), 42);

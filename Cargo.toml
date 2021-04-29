@@ -11,6 +11,5 @@ license = "Apache-2.0/MIT"
 readme = "README.md"
 
 [dev-dependencies]
-async-std = "1.5"
 futures-timer = "3.0"
 tokio = { version = "0.2", features = ["sync"] }
