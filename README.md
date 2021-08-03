@@ -11,8 +11,11 @@ https://github.com/zesterer/pollster)
 ![actions-badge](https://github.com/zesterer/pollster/workflows/Rust/badge.svg?branch=master)
 
 ```rust
+use pollster::FutureExt as _;
+
 let my_fut = async {};
-let result = pollster::block_on(my_fut);
+
+let result = my_fut.block_on();
 ```
 
 That's it. That's all it does. Nothing more. No dependencies, no complexity. No need to pull in 50 crates to evaluate a
