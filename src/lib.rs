@@ -103,13 +103,17 @@ impl Wake for Signal {
 /// let my_fut = async {};
 /// let result = pollster::block_on(my_fut);
 /// ```
-pub fn block_on<F: Future>(fut: F) -> F::Output {
+pub fn block_on<F: Future>(mut fut: F) -> F::Output {
     // Pin the future so that it can be polled.
-    let mut fut = Box::pin(fut);
+    // SAFETY: We shadow `fut` so that it cannot be used again. The future is now pinned to the stack and will not be
+    // moved until the end of this scope. This is, incidentally, exactly what the `pin_mut!` macro from `pin_utils`
+    // does.
+    let mut fut = unsafe { std::pin::Pin::new_unchecked(&mut fut) };
 
     // Signal used to wake up the thread for polling as the future moves to completion. We need to use an `Arc`
     // because, although the lifetime of `fut` is limited to this function, the underlying IO abstraction might keep
     // the signal alive for far longer. `Arc` is a thread-safe way to allow this to happen.
+    // TODO: Investigate ways to reuse this `Arc<Signal>`... perhaps via a `static`?
     let signal = Arc::new(Signal::new());
 
     // Create a context that will be passed to the future.
