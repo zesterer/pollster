@@ -1,9 +1,14 @@
 #![doc = include_str!("../README.md")]
+#![feature(once_cell, pin_macro)]
 
 use std::{
     future::Future,
-    sync::{Arc, Condvar, Mutex},
+    sync::Arc,
     task::{Context, Poll, Wake, Waker},
+    pin::pin,
+    thread::{self, Thread},
+    sync::atomic::{AtomicUsize, Ordering},
+    mem,
 };
 
 /// An extension trait that allows blocking on a future in suffix position.
@@ -24,67 +29,41 @@ pub trait FutureExt: Future {
 
 impl<F: Future> FutureExt for F {}
 
-enum SignalState {
-    Empty,
-    Waiting,
-    Notified,
-}
-
 struct Signal {
-    state: Mutex<SignalState>,
-    cond: Condvar,
+    thread: AtomicUsize,
 }
 
 impl Signal {
     fn new() -> Self {
-        Self {
-            state: Mutex::new(SignalState::Empty),
-            cond: Condvar::new(),
-        }
+        Self { thread: AtomicUsize::new(0) }
     }
 
     fn wait(&self) {
-        let mut state = self.state.lock().unwrap();
-        match *state {
-            SignalState::Notified => {
-                // Notify() was called before we got here, consume it here without waiting and return immediately.
-                *state = SignalState::Empty;
-                return;
-            }
-            // This should not be possible because our signal is created within a function and never handed out to any
-            // other threads. If this is the case, we have a serious problem so we panic immediately to avoid anything
-            // more problematic happening.
-            SignalState::Waiting => {
-                unreachable!("Multiple threads waiting on the same signal: Open a bug report!");
-            }
-            SignalState::Empty => {
-                // Nothing has happened yet, and we're the only thread waiting (as should be the case!). Set the state
-                // accordingly and begin polling the condvar in a loop until it's no longer telling us to wait. The
-                // loop prevents incorrect spurious wakeups.
-                *state = SignalState::Waiting;
-                while let SignalState::Waiting = *state {
-                    state = self.cond.wait(state).unwrap();
+        let thread_ptr = unsafe { Arc::into_raw(mem::transmute::<Thread, Arc<()>>(thread::current())) };
+        match self.thread.compare_exchange(
+            0,
+            thread_ptr as usize,
+            Ordering::Acquire,
+            Ordering::Relaxed,
+        ) {
+            Ok(_) => {
+                while self.thread.load(Ordering::Relaxed) == thread_ptr as usize {
+                    thread::park();
                 }
-            }
+            },
+            Err(_) => {},
         }
     }
 
     fn notify(&self) {
-        let mut state = self.state.lock().unwrap();
-        match *state {
-            // The signal was already notified, no need to do anything because the thread will be waking up anyway
-            SignalState::Notified => {}
-            // The signal wasnt notified but a thread isnt waiting on it, so we can avoid doing unnecessary work by
-            // skipping the condvar and leaving behind a message telling the thread that a notification has already
-            // occurred should it come along in the future.
-            SignalState::Empty => *state = SignalState::Notified,
-            // The signal wasnt notified and there's a waiting thread. Reset the signal so it can be wait()'ed on again
-            // and wake up the thread. Because there should only be a single thread waiting, `notify_all` would also be
-            // valid.
-            SignalState::Waiting => {
-                *state = SignalState::Empty;
-                self.cond.notify_one();
-            }
+        match self.thread.swap(1, Ordering::Acquire) {
+            0 => {}, // No thread waiting yet
+            1 => {}, // Notified twice, no effect
+            ptr => unsafe {
+                let thread = mem::transmute::<Arc<()>, Thread>(Arc::from_raw(ptr as *mut ()));
+                thread.unpark();
+                mem::forget(thread);
+            },
         }
     }
 }
@@ -105,10 +84,7 @@ impl Wake for Signal {
 /// ```
 pub fn block_on<F: Future>(mut fut: F) -> F::Output {
     // Pin the future so that it can be polled.
-    // SAFETY: We shadow `fut` so that it cannot be used again. The future is now pinned to the stack and will not be
-    // moved until the end of this scope. This is, incidentally, exactly what the `pin_mut!` macro from `pin_utils`
-    // does.
-    let mut fut = unsafe { std::pin::Pin::new_unchecked(&mut fut) };
+    let mut fut = pin!(fut);
 
     // Signal used to wake up the thread for polling as the future moves to completion. We need to use an `Arc`
     // because, although the lifetime of `fut` is limited to this function, the underlying IO abstraction might keep
