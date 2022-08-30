@@ -1,6 +1,6 @@
 [package]
 name = "pollster"
-version = "0.2.5"
+version = "0.2.6"
 description = "Synchronously block the thread until a future completes"
 categories = ["asynchronous", "concurrency"]
 keywords = ["async", "minimal", "executor", "runtime", "block_on"]
@@ -12,4 +12,5 @@ readme = "README.md"
 
 [dev-dependencies]
 futures-timer = "3.0"
-tokio = { version = "1", features = ["sync"] }
+tokio = { version = "1", features = ["sync", "time", "rt", "rt-multi-thread"] }
+pollster_old = { package = "pollster", version = "=0.2.5" }
