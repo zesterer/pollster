@@ -8,6 +8,18 @@ use quote::{quote_spanned, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::{AttributeArgs, Error, ItemFn, Lit, Meta, MetaNameValue, NestedMeta, Result};
 
+/// Uses [`pollster::block_on`] to enable `async fn main() {}`.
+///
+/// # Example
+///
+/// ```
+/// #[pollster::main]
+/// async fn main() {
+///     let my_fut = async {};
+///
+///     my_fut.await;
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn main(
     attr: proc_macro::TokenStream,
@@ -22,6 +34,18 @@ pub fn main(
     }
 }
 
+/// Uses [`pollster::block_on`] to enable `async` on test functions.
+///
+/// # Example
+///
+/// ```ignore
+/// #[pollster::test]
+/// async fn main() {
+///     let my_fut = async {};
+///
+///     my_fut.await;
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn test(
     attr: proc_macro::TokenStream,
