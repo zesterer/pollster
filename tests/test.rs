@@ -1,11 +1,13 @@
+use std::future::ready;
+
 #[pollster::test]
 async fn basic() {
-    assert_eq!(42, 42);
+    ready(42).await;
 }
 
 #[pollster::test]
 async fn result() -> Result<(), std::io::Error> {
-    if 42 == 42 {
+    if ready(42).await == 42 {
         Ok(())
     } else {
         unreachable!()
@@ -14,5 +16,5 @@ async fn result() -> Result<(), std::io::Error> {
 
 #[pollster::test(crate = "pollster")]
 async fn crate_() {
-    assert_eq!(42, 42);
+    ready(42).await;
 }

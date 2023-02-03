@@ -1,6 +1,8 @@
+use std::future::ready;
+
 #[pollster::main]
 async fn main_basic() {
-    let _ = 42;
+    ready(42).await;
 }
 
 #[test]
@@ -10,7 +12,7 @@ fn basic() {
 
 #[pollster::main]
 async fn main_result() -> Result<(), std::io::Error> {
-    let _ = 42;
+    ready(42).await;
     Ok(())
 }
 
@@ -21,7 +23,7 @@ fn result() {
 
 #[pollster::main(crate = "pollster")]
 async fn main_crate() {
-    let _ = 42;
+    ready(42).await;
 }
 
 #[test]
