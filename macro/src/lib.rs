@@ -13,11 +13,10 @@ pub fn main(
     attr: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let item = item;
     let item = TokenStream::from(item);
-    let mut backup = item.clone();
+    let backup = item.clone();
 
-    match common(&mut backup, attr.into(), item) {
+    match common(attr.into(), item) {
         Ok(output) => output.into_token_stream().into(),
         Err(error) => TokenStream::from_iter([error.into_compile_error(), backup]).into(),
     }
@@ -28,30 +27,28 @@ pub fn test(
     attr: proc_macro::TokenStream,
     item: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    let item = item;
     let item = TokenStream::from(item);
-    let mut backup = item.clone();
+    let backup = item.clone();
 
-    match test_internal(&mut backup, attr.into(), item) {
+    match test_internal(attr.into(), item) {
         Ok(output) => output.into_token_stream().into(),
         Err(error) => TokenStream::from_iter([error.into_compile_error(), backup]).into(),
     }
 }
 
-fn test_internal(backup: &mut TokenStream, attr: TokenStream, item: TokenStream) -> Result<ItemFn> {
-    let mut item = common(backup, attr, item)?;
+fn test_internal(attr: TokenStream, item: TokenStream) -> Result<ItemFn> {
+    let mut item = common(attr, item)?;
     item.attrs.push(syn::parse_quote! { #[test] });
 
     Ok(item)
 }
 
-fn common(backup: &mut TokenStream, attr: TokenStream, item: TokenStream) -> Result<ItemFn> {
+fn common(attr: TokenStream, item: TokenStream) -> Result<ItemFn> {
     let mut item: ItemFn = syn::parse2(item)?;
     let span = item.block.brace_token.span;
 
     if item.sig.asyncness.is_some() {
         item.sig.asyncness = None;
-        *backup = item.to_token_stream();
     } else {
         return Err(Error::new_spanned(item, "expected function to be async"));
     }
@@ -74,14 +71,17 @@ fn common(backup: &mut TokenStream, attr: TokenStream, item: TokenStream) -> Res
                     .replace(quote_spanned! { span => #name})
                     .is_some()
                 {
-                    return Err(Error::new(span, "found duplicate crate attribute"));
+                    return Err(Error::new(span, "found duplicate \"crate\" attribute"));
                 }
 
                 continue;
             }
         }
 
-        return Err(Error::new_spanned(item, "main(crate = \"package-name\")"));
+        return Err(Error::new_spanned(
+            item,
+            "expected valid attribute, e.g. `main(crate = \"package-name\")`",
+        ));
     }
 
     let crate_name = crate_name.unwrap_or_else(|| quote::quote! { ::pollster });
