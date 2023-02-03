@@ -11,3 +11,8 @@ async fn result() -> Result<(), std::io::Error> {
         unreachable!()
     }
 }
+
+#[pollster::test(crate = "pollster")]
+async fn crate_() {
+    assert_eq!(42, 42);
+}

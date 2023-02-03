@@ -18,3 +18,13 @@ async fn main_result() -> Result<(), std::io::Error> {
 fn result() {
     main_result().unwrap();
 }
+
+#[pollster::main(crate = "pollster")]
+async fn main_crate() {
+    let _ = 42;
+}
+
+#[test]
+fn crate_() {
+    main_crate();
+}
