@@ -1,3 +1,5 @@
+extern crate pollster as reexported_pollster;
+
 use std::future::ready;
 
 #[pollster::main]
@@ -21,7 +23,7 @@ fn result() {
     main_result().unwrap();
 }
 
-#[pollster::main(crate = "pollster")]
+#[pollster::main(crate = "reexported_pollster")]
 async fn main_crate() {
     ready(42).await;
 }

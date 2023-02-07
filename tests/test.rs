@@ -1,3 +1,5 @@
+extern crate pollster as reexported_pollster;
+
 use std::future::ready;
 
 #[pollster::test]
@@ -14,7 +16,7 @@ async fn result() -> Result<(), std::io::Error> {
     }
 }
 
-#[pollster::test(crate = "pollster")]
+#[pollster::test(crate = "reexported_pollster")]
 async fn crate_() {
     ready(42).await;
 }
