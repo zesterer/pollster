@@ -21,3 +21,6 @@ syn = { version = "1", default-features = false, features = [
     "parsing",
     "printing",
 ] }
+
+[dev-dependencies]
+pollster = { path = "..", features = ["macro"] }

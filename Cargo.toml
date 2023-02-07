@@ -1,6 +1,6 @@
 [workspace]
 members = ["", "macro"]
-default-members = [""]
+default-members = ["macro"]
 
 [package]
 name = "pollster"
@@ -23,11 +23,3 @@ pollster-macro = { version = "0.1", path = "macro", optional = true }
 [dev-dependencies]
 futures-timer = "3.0"
 tokio = { version = "1", features = ["sync"] }
-
-[[test]]
-name = "main"
-required-features = ["macro"]
-
-[[test]]
-name = "test"
-required-features = ["macro"]
