@@ -1,3 +1,7 @@
+[workspace]
+members = ["", "macro"]
+default-members = [""]
+
 [package]
 name = "pollster"
 version = "0.2.5"
@@ -10,6 +14,20 @@ edition = "2018"
 license = "Apache-2.0/MIT"
 readme = "README.md"
 
+[features]
+macro = ["pollster-macro"]
+
+[dependencies]
+pollster-macro = { version = "0.1", path = "macro", optional = true }
+
 [dev-dependencies]
 futures-timer = "3.0"
 tokio = { version = "1", features = ["sync"] }
+
+[[test]]
+name = "main"
+required-features = ["macro"]
+
+[[test]]
+name = "test"
+required-features = ["macro"]

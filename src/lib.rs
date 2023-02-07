@@ -6,6 +6,9 @@ use std::{
     task::{Context, Poll, Wake, Waker},
 };
 
+#[cfg(feature = "macro")]
+pub use pollster_macro::{main, test};
+
 /// An extension trait that allows blocking on a future in suffix position.
 pub trait FutureExt: Future {
     /// Block the thread until the future is ready.

@@ -47,3 +47,27 @@ Unfortunately, `pollster` will not work for *all* futures because some require a
 information about when and where `pollster` may be used. However, if you're already pulling in the required dependencies
 to create such a future in the first place, it's likely that you already have a version of `block_on` in your dependency
 tree that's designed to poll your future, so use that instead.
+
+## Macro
+
+When using the `macro` crate feature, an attribute-macro can be used to mark `async fn main()`:
+```rust,ignore
+#[pollster::main]
+async fn main() {
+    let my_fut = async {};
+
+    my_fut.await;
+}
+```
+
+Additionally if you have re-exported the crate with a different name then `pollster`, you have to specify it:
+```rust,ignore
+#[pollster::main(crate = "renamed-pollster")]
+async fn main() {
+    let my_fut = async {};
+
+    my_fut.await;
+}
+```
+
+You can also use `#[pollster::test]` for tests.
