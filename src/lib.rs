@@ -77,11 +77,11 @@ impl Signal {
         match *state {
             // The signal was already notified, no need to do anything because the thread will be waking up anyway
             SignalState::Notified => {}
-            // The signal wasnt notified but a thread isnt waiting on it, so we can avoid doing unnecessary work by
+            // The signal wasn't notified but a thread isn't waiting on it, so we can avoid doing unnecessary work by
             // skipping the condvar and leaving behind a message telling the thread that a notification has already
             // occurred should it come along in the future.
             SignalState::Empty => *state = SignalState::Notified,
-            // The signal wasnt notified and there's a waiting thread. Reset the signal so it can be wait()'ed on again
+            // The signal wasn't notified and there's a waiting thread. Reset the signal so it can be wait()'ed on again
             // and wake up the thread. Because there should only be a single thread waiting, `notify_all` would also be
             // valid.
             SignalState::Waiting => {
