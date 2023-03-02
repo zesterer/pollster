@@ -15,7 +15,9 @@ license = "Apache-2.0/MIT"
 readme = "README.md"
 
 [features]
+default = ["std"]
 macro = ["pollster-macro"]
+std = []
 
 [dependencies]
 pollster-macro = { version = "0.1", path = "macro", optional = true }
