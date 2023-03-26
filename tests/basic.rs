@@ -1,4 +1,3 @@
-use pollster;
 use std::time::{Duration, Instant};
 
 #[test]
