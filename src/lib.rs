@@ -111,7 +111,7 @@ pub fn block_on<F: Future>(mut fut: F) -> F::Output {
     // SAFETY: We shadow `fut` so that it cannot be used again. The future is now pinned to the stack and will not be
     // moved until the end of this scope. This is, incidentally, exactly what the `pin_mut!` macro from `pin_utils`
     // does.
-    let mut fut = unsafe { std::pin::Pin::new_unchecked(&mut fut) };
+    let mut fut = std::pin::pin!(fut);
 
     // Signal used to wake up the thread for polling as the future moves to completion. We need to use an `Arc`
     // because, although the lifetime of `fut` is limited to this function, the underlying IO abstraction might keep
