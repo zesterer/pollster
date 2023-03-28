@@ -62,7 +62,7 @@ async fn main() {
 
 Additionally if you have re-exported the crate with a different name then `pollster`, you have to specify it:
 ```rust,ignore
-#[pollster::main(crate = "renamed-pollster")]
+#[pollster::main(crate = renamed_pollster)]
 async fn main() {
     let my_fut = async {};
 
