@@ -23,12 +23,18 @@ fn result() {
     main_result().unwrap();
 }
 
+#[pollster::main(crate = reexported_pollster)]
+async fn main_crate_path() {
+    ready(42).await;
+}
+
 #[pollster::main(crate = "reexported_pollster")]
-async fn main_crate() {
+async fn main_crate_str() {
     ready(42).await;
 }
 
 #[test]
 fn crate_() {
-    main_crate();
+    main_crate_path();
+    main_crate_str();
 }

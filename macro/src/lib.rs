@@ -4,9 +4,9 @@ use std::iter::FromIterator;
 use std::str::FromStr;
 
 use proc_macro2::TokenStream;
-use quote::{quote_spanned, ToTokens};
-use syn::parse::{Parse, ParseStream};
-use syn::{AttributeArgs, Error, ItemFn, Lit, Meta, MetaNameValue, NestedMeta, Result};
+use quote::ToTokens;
+use syn::spanned::Spanned;
+use syn::{Error, Expr, ExprLit, ExprPath, ItemFn, Lit, MetaNameValue, Result};
 
 /// Uses [`pollster::block_on`] to enable `async fn main() {}`.
 ///
@@ -69,7 +69,6 @@ fn test_internal(attr: TokenStream, item: TokenStream) -> Result<ItemFn> {
 
 fn common(attr: TokenStream, item: TokenStream) -> Result<ItemFn> {
     let mut item: ItemFn = syn::parse2(item)?;
-    let span = item.block.brace_token.span;
 
     if item.sig.asyncness.is_some() {
         item.sig.asyncness = None;
@@ -77,62 +76,44 @@ fn common(attr: TokenStream, item: TokenStream) -> Result<ItemFn> {
         return Err(Error::new_spanned(item, "expected function to be async"));
     }
 
-    let attr: Attr = syn::parse2(attr)?;
-    let mut crate_name = None;
+    let path = if attr.is_empty() {
+        quote::quote! { ::pollster }
+    } else {
+        let attr: MetaNameValue = syn::parse2(attr)?;
 
-    for meta in attr.0 {
-        if let NestedMeta::Meta(Meta::NameValue(MetaNameValue {
-            path,
-            lit: Lit::Str(name),
-            ..
-        })) = meta
-        {
-            if path.is_ident("crate") {
-                let span = name.span();
-                let name = TokenStream::from_str(&name.value())?;
-
-                if crate_name
-                    .replace(quote_spanned! { span => #name})
-                    .is_some()
-                {
-                    return Err(Error::new(span, "found duplicate \"crate\" attribute"));
+        if attr.path.is_ident("crate") {
+            match attr.value {
+                Expr::Lit(ExprLit {
+                    attrs,
+                    lit: Lit::Str(str),
+                }) if attrs.is_empty() => TokenStream::from_str(&str.value())?,
+                Expr::Path(ExprPath {
+                    attrs,
+                    qself: None,
+                    path,
+                }) if attrs.is_empty() => path.to_token_stream(),
+                _ => {
+                    return Err(Error::new_spanned(
+                        attr.value,
+                        "expected valid path, e.g. `::package_name`",
+                    ))
                 }
-
-                continue;
             }
+        } else {
+            return Err(Error::new_spanned(attr.path, "expected `crate`"));
         }
+    };
 
-        return Err(Error::new_spanned(
-            item,
-            "expected valid attribute, e.g. `main(crate = \"package-name\")`",
-        ));
-    }
-
-    let crate_name = crate_name.unwrap_or_else(|| quote::quote! { ::pollster });
-
+    let span = item.span();
     let block = item.block;
     item.block = syn::parse_quote_spanned! {
         span =>
         {
-            #crate_name::block_on(async {
+            #path::block_on(async {
                 #block
             })
         }
     };
 
     Ok(item)
-}
-
-struct Attr(AttributeArgs);
-
-impl Parse for Attr {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let mut attr = Vec::new();
-
-        while let Ok(meta) = input.parse() {
-            attr.push(meta)
-        }
-
-        Ok(Self(attr))
-    }
 }

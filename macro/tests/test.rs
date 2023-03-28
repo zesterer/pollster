@@ -16,7 +16,12 @@ async fn result() -> Result<(), std::io::Error> {
     }
 }
 
+#[pollster::test(crate = reexported_pollster)]
+async fn crate_path() {
+    ready(42).await;
+}
+
 #[pollster::test(crate = "reexported_pollster")]
-async fn crate_() {
+async fn crate_str() {
     ready(42).await;
 }
