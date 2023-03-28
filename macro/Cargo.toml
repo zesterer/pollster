@@ -24,3 +24,6 @@ syn = { version = "2", default-features = false, features = [
 
 [dev-dependencies]
 pollster = { path = "..", features = ["macro"] }
+
+[package.metadata.docs.rs]
+targets = []

@@ -20,6 +20,8 @@ use syn::{Error, Expr, ExprLit, ExprPath, ItemFn, Lit, MetaNameValue, Result};
 ///     my_fut.await;
 /// }
 /// ```
+///
+/// [`pollster::block_on`]: https://docs.rs/pollster/0.3.0/pollster/fn.block_on.html
 #[proc_macro_attribute]
 pub fn main(
     attr: proc_macro::TokenStream,
@@ -46,6 +48,8 @@ pub fn main(
 ///     my_fut.await;
 /// }
 /// ```
+///
+/// [`pollster::block_on`]: https://docs.rs/pollster/0.3.0/pollster/fn.block_on.html
 #[proc_macro_attribute]
 pub fn test(
     attr: proc_macro::TokenStream,
