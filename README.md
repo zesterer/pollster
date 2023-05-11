@@ -71,3 +71,7 @@ async fn main() {
 ```
 
 You can also use `#[pollster::test]` for tests.
+
+## Comparison with `futures::executor::block_on`
+
+`pollster` does approximately the same thing as the `block_on` function from the `futures` crate. If you already have `futures` in your dependency tree, you might as well use it instead. `pollster` is primarily for applications that don't care to pull all of `futures` or another runtime like `tokio` into their dependency tree for the sake of evaluating simple futures.
