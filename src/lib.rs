@@ -94,6 +94,10 @@ impl Wake for Signal {
     fn wake(self: Arc<Self>) {
         self.notify();
     }
+
+    fn wake_by_ref(self: &Arc<Self>) {
+        self.notify();
+    }
 }
 
 /// Block the thread until the future is ready.
