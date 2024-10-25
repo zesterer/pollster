@@ -2,7 +2,7 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 use std::{
-    future::Future,
+    future::{Future, IntoFuture},
     sync::{Arc, Condvar, Mutex},
     task::{Context, Poll, Wake, Waker},
 };
