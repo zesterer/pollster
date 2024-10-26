@@ -1,6 +1,6 @@
 [package]
 name = "pollster-macro"
-version = "0.1.0"
+version = "0.4.0" # Should be kept in sync with `pollster`
 description = "Proc-macro crate for pollster"
 categories = ["asynchronous", "concurrency"]
 keywords = ["async", "minimal", "executor", "runtime", "block_on"]
