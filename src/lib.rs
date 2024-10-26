@@ -2,7 +2,7 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 use std::{
-    future::Future,
+    future::{Future, IntoFuture},
     sync::{Arc, Condvar, Mutex},
     task::{Context, Poll, Wake, Waker},
 };
@@ -108,7 +108,9 @@ impl Wake for Signal {
 /// let my_fut = async {};
 /// let result = pollster::block_on(my_fut);
 /// ```
-pub fn block_on<F: Future>(mut fut: F) -> F::Output {
+pub fn block_on<F: IntoFuture>(fut: F) -> F::Output {
+    let mut fut = fut.into_future();
+
     // Pin the future so that it can be polled.
     // SAFETY: We shadow `fut` so that it cannot be used again. The future is now pinned to the stack and will not be
     // moved until the end of this scope. This is, incidentally, exactly what the `pin_mut!` macro from `pin_utils`
