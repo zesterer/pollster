@@ -2,8 +2,7 @@
 #![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 use std::{
-    future::Future,
-    pin::Pin,
+    future::{Future, IntoFuture},
     sync::Arc,
     task::{Context, Poll, Wake, Waker},
     thread,
@@ -53,7 +52,7 @@ impl Wake for Signal {
     }
 
     fn wake_by_ref(self: &Arc<Self>) {
-        self.notify();
+        self.owning_thread.unpark();
     }
 }
 
