@@ -9,10 +9,13 @@ use std::{
 };
 
 thread_local! {
-    // A local reusable signal for each thread.
-    static LOCAL_THREAD_SIGNAL: Arc<Signal> = Arc::new(Signal {
-        owning_thread: thread::current(),
-    });
+    // A local reusable waker for each thread.
+    static LOCAL_WAKER: Waker = {
+        let signal = Arc::new(Signal {
+            owning_thread: thread::current(),
+        });
+        Waker::from(signal)
+    };
 }
 
 #[cfg(feature = "macro")]
@@ -68,10 +71,9 @@ pub fn block_on<F: IntoFuture>(fut: F) -> F::Output {
     let mut fut = core::pin::pin!(fut.into_future());
 
     // A signal used to wake up the thread for polling as the future moves to completion.
-    LOCAL_THREAD_SIGNAL.with(|signal| {
-        // Create a waker and a context to be passed to the future.
-        let waker = Waker::from(Arc::clone(signal));
-        let mut context = Context::from_waker(&waker);
+    LOCAL_WAKER.with(|waker| {
+        // Create a context to be passed to the future.
+        let mut context = Context::from_waker(waker);
 
         // Poll the future to completion.
         loop {
