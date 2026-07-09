@@ -4,12 +4,12 @@ default-members = ["macro"]
 
 [package]
 name = "pollster"
-version = "0.4.0"
+version = "1.0.0"
 description = "Synchronously block the thread until a future completes"
 categories = ["asynchronous", "concurrency"]
 keywords = ["async", "minimal", "executor", "runtime", "block_on"]
 repository = "https://github.com/zesterer/pollster"
-authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
+authors = ["Joshua Barretto <joshua@jsbarretto.com>"]
 edition = "2018"
 rust-version = "1.69"
 license = "Apache-2.0/MIT"
@@ -19,7 +19,7 @@ readme = "README.md"
 macro = ["pollster-macro"]
 
 [dependencies]
-pollster-macro = { version = "0.4.0", path = "macro", optional = true }
+pollster-macro = { version = "1.0.0", path = "macro", optional = true }
 
 [dev-dependencies]
 futures-timer = "3.0"
