@@ -22,7 +22,7 @@ thread_local! {
 pub use pollster_macro::{main, test};
 
 /// An extension trait that allows blocking on a future in suffix position.
-pub trait FutureExt: Future {
+pub trait FutureExt: IntoFuture {
     /// Block the thread until the future is ready.
     ///
     /// # Example
@@ -42,7 +42,7 @@ pub trait FutureExt: Future {
     }
 }
 
-impl<F: Future> FutureExt for F {}
+impl<F: IntoFuture> FutureExt for F {}
 
 struct Signal {
     /// The thread that owns the signal.
