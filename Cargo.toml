@@ -4,7 +4,7 @@ default-members = ["macro"]
 
 [package]
 name = "pollster"
-version = "1.0.0"
+version = "1.0.1"
 description = "Synchronously block the thread until a future completes"
 categories = ["asynchronous", "concurrency"]
 keywords = ["async", "minimal", "executor", "runtime", "block_on"]

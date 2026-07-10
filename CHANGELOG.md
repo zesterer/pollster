@@ -15,11 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+# [1.0.1] - 2026-07-10
+
+### Fixed
+
+- Use `doc_cfg` instead of `doc_auto_cfg` for docsrs builds
+
 # [1.0.0] - 2026-07-09
 
 ### Changed
 
-- `FutureExt` is now implemented for `IntoFuture`, not just `Future`.
+- `FutureExt` is now implemented for `IntoFuture`, not just `Future`
 
 # [0.4.0] - 2024-10-26
 

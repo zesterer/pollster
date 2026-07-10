@@ -16,7 +16,7 @@ checksum = "a89322df9ebe1c1578d689c92318e070967d1042b512afbe49518723f4e6d5cd"
 
 [[package]]
 name = "pollster"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "futures-timer",
  "pollster-macro",
@@ -25,7 +25,7 @@ dependencies = [
 
 [[package]]
 name = "pollster-macro"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "pollster",
  "proc-macro2",
