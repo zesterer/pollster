@@ -12,7 +12,7 @@ repository = "https://github.com/zesterer/pollster"
 authors = ["Joshua Barretto <joshua@jsbarretto.com>"]
 edition = "2018"
 rust-version = "1.69"
-license = "Apache-2.0/MIT"
+license = "MIT OR Apache-2.0"
 readme = "README.md"
 
 [features]
