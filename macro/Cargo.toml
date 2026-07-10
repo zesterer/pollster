@@ -7,7 +7,7 @@ keywords = ["async", "minimal", "executor", "runtime", "block_on"]
 repository = "https://github.com/zesterer/pollster"
 authors = ["Joshua Barretto <joshua.s.barretto@gmail.com>"]
 edition = "2018"
-license = "Apache-2.0/MIT"
+license = "MIT OR Apache-2.0"
 readme = "README.md"
 
 [lib]
