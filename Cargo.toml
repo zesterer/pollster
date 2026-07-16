@@ -1,6 +1,6 @@
 [workspace]
 members = ["", "macro"]
-default-members = ["macro"]
+default-members = ["", "macro"]
 
 [package]
 name = "pollster"
@@ -15,6 +15,10 @@ rust-version = "1.69"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 
+[[bench]]
+name = "main"
+harness = false
+
 [features]
 macro = ["pollster-macro"]
 
@@ -24,6 +28,7 @@ pollster-macro = { version = "1.0.0", path = "macro", optional = true }
 [dev-dependencies]
 futures-timer = "3.0"
 tokio = { version = "1", features = ["sync"] }
+criterion = "0.4"
 
 [package.metadata.docs.rs]
 all-features = true
