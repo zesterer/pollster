@@ -56,3 +56,35 @@ fn mpsc() {
     thread_a.join().expect("join thread_a");
     thread_b.join().expect("join thread_b");
 }
+
+#[test]
+fn nested() {
+    use futures::future::join;
+    use futures_timer::Delay;
+    use std::time::Duration;
+
+    /// Simulates an async I/O or RPC call (completes after 10ms).
+    async fn fetch_from_remote() {
+        Delay::new(Duration::from_millis(10)).await;
+    }
+
+    /// Simulates a synchronous helper or trait method (potentially in another
+    /// module or crate) that uses `pollster::block_on` to bridge to an async API.
+    fn read_cached_metadata() {
+        pollster::block_on(Delay::new(Duration::from_millis(100)));
+    }
+
+    async fn load_metadata() {
+        read_cached_metadata();
+    }
+
+    async fn run() {
+        let remote_fut = fetch_from_remote();
+        let metadata_fut = load_metadata();
+        join(remote_fut, metadata_fut).await;
+    }
+
+    // Completes in ~100ms on pollster 0.4.0; deadlocks forever on 1.0.1.
+    pollster::block_on(run());
+    println!("completed");
+}

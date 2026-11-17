@@ -8,16 +8,6 @@ use std::{
     thread,
 };
 
-thread_local! {
-    // A local reusable waker for each thread.
-    static LOCAL_WAKER: Waker = {
-        let signal = Arc::new(Signal {
-            owning_thread: thread::current(),
-        });
-        Waker::from(signal)
-    };
-}
-
 #[cfg(feature = "macro")]
 pub use pollster_macro::{main, test};
 
@@ -45,17 +35,17 @@ pub trait FutureExt: IntoFuture {
 impl<F: IntoFuture> FutureExt for F {}
 
 struct Signal {
-    /// The thread that owns the signal.
-    owning_thread: thread::Thread,
+    /// The thread that created the signal.
+    thread: thread::Thread,
 }
 
 impl Wake for Signal {
-    fn wake(self: Arc<Self>) {
-        self.owning_thread.unpark();
+    fn wake(self: Arc<Signal>) {
+        Self::wake_by_ref(&self);
     }
 
-    fn wake_by_ref(self: &Arc<Self>) {
-        self.owning_thread.unpark();
+    fn wake_by_ref(self: &Arc<Signal>) {
+        self.thread.unpark();
     }
 }
 
@@ -70,17 +60,19 @@ impl Wake for Signal {
 pub fn block_on<F: IntoFuture>(fut: F) -> F::Output {
     let mut fut = core::pin::pin!(fut.into_future());
 
-    // A signal used to wake up the thread for polling as the future moves to completion.
-    LOCAL_WAKER.with(|waker| {
-        // Create a context to be passed to the future.
-        let mut context = Context::from_waker(waker);
+    let sig = Arc::new(Signal {
+        thread: thread::current(),
+    });
+    let waker = Waker::from(sig.clone());
+    // Create a context to be passed to the future.
+    let mut context = Context::from_waker(&waker);
 
-        // Poll the future to completion.
-        loop {
-            match fut.as_mut().poll(&mut context) {
-                Poll::Pending => thread::park(),
-                Poll::Ready(item) => break item,
-            }
+    // Poll the future to completion.
+    loop {
+        match fut.as_mut().poll(&mut context) {
+            // If the future is not yet ready, park
+            Poll::Pending => thread::park(),
+            Poll::Ready(item) => break item,
         }
-    })
+    }
 }
