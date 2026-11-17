@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+# [1.0.2] - 2026-011-17
+
+### Fixed
+
+- Deadlock when `block_on` is used in a reentrant manner
+
 # [1.0.1] - 2026-07-10
 
 ### Fixed
