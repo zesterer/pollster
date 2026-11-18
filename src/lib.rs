@@ -3,6 +3,7 @@
 
 use std::{
     future::{Future, IntoFuture},
+    sync::atomic::{AtomicBool, Ordering},
     sync::Arc,
     task::{Context, Poll, Wake, Waker},
     thread,
@@ -37,6 +38,7 @@ impl<F: IntoFuture> FutureExt for F {}
 struct Signal {
     /// The thread that created the signal.
     thread: thread::Thread,
+    notified: AtomicBool,
 }
 
 impl Wake for Signal {
@@ -45,7 +47,9 @@ impl Wake for Signal {
     }
 
     fn wake_by_ref(self: &Arc<Signal>) {
-        self.thread.unpark();
+        if !self.notified.swap(true, Ordering::Release) {
+            self.thread.unpark();
+        }
     }
 }
 
@@ -60,9 +64,7 @@ impl Wake for Signal {
 pub fn block_on<F: IntoFuture>(fut: F) -> F::Output {
     let mut fut = core::pin::pin!(fut.into_future());
 
-    let sig = Arc::new(Signal {
-        thread: thread::current(),
-    });
+    let sig = Arc::new(Signal { thread: thread::current(), notified: false.into() });
     let waker = Waker::from(sig.clone());
     // Create a context to be passed to the future.
     let mut context = Context::from_waker(&waker);
@@ -71,7 +73,11 @@ pub fn block_on<F: IntoFuture>(fut: F) -> F::Output {
     loop {
         match fut.as_mut().poll(&mut context) {
             // If the future is not yet ready, park
-            Poll::Pending => thread::park(),
+            Poll::Pending => {
+                while !sig.notified.swap(false, Ordering::Acquire) {
+                    thread::park();
+                }
+            }
             Poll::Ready(item) => break item,
         }
     }
