@@ -4,7 +4,7 @@ default-members = [""]
 
 [package]
 name = "pollster"
-version = "1.0.2"
+version = "1.0.3"
 description = "Synchronously block the thread until a future completes"
 categories = ["asynchronous", "concurrency"]
 keywords = ["async", "minimal", "executor", "runtime", "block_on"]
