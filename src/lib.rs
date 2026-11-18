@@ -37,7 +37,7 @@ impl<F: IntoFuture> FutureExt for F {}
 
 struct Signal {
     /// The thread that created the signal.
-    thread: thread::Thread,
+    thread: std::sync::OnceLock<thread::Thread>,
     notified: AtomicBool,
 }
 
@@ -47,8 +47,17 @@ impl Wake for Signal {
     }
 
     fn wake_by_ref(self: &Arc<Signal>) {
+        // Note: Unparking only needs to occur if the blocked thread has not already been notified.
+        // Q: Can this get away with ever not unparking a blocked thread? A: No, because `notified`
+        // would need to have already been `true`, which means the thread's park token has already
+        // been made available anyway.
         if !self.notified.swap(true, Ordering::Release) {
-            self.thread.unpark();
+            // Unpark the thread, if one is available. If one isn't available, the blocking call
+            // *must* re-poll this future, so skipping the unpark is fine: we'll get it on the next
+            // pass!
+            if let Some(thread) = self.thread.get() {
+                thread.unpark();
+            }
         }
     }
 }
@@ -64,17 +73,42 @@ impl Wake for Signal {
 pub fn block_on<F: IntoFuture>(fut: F) -> F::Output {
     let mut fut = core::pin::pin!(fut.into_future());
 
-    let sig = Arc::new(Signal { thread: thread::current(), notified: false.into() });
-    let waker = Waker::from(sig.clone());
+    let waker = Waker::from(Arc::new(Signal {
+        thread: std::sync::OnceLock::new(),
+        notified: false.into(),
+    }));
     // Create a context to be passed to the future.
     let mut context = Context::from_waker(&waker);
+
+    // Perform a speculative initial poll: a lot of futures are ready on first poll, and if this is
+    // the case then we get to avoid the expensive `thread::current()` call (which requires a
+    // syscall on most platforms!)
+    match fut.as_mut().poll(&mut context) {
+        Poll::Pending => {
+            _ = unsafe { &*waker.data().cast::<Signal>() }
+                .thread
+                .set(thread::current())
+        }
+        Poll::Ready(item) => return item,
+    }
 
     // Poll the future to completion.
     loop {
         match fut.as_mut().poll(&mut context) {
             // If the future is not yet ready, park
             Poll::Pending => {
-                while !sig.notified.swap(false, Ordering::Acquire) {
+                // To avoid excess polling due to spurious wakeups, only perform polling if
+                // `notified` was set. Q: Is it possible for this loop to park the thread despite
+                // there having been a notification? A: No, because `park` is only called if
+                // notification was not set, and if it became set in the time since the check, the
+                // thread token is now available anyway and `park` will immediately return.
+                //
+                // SAFETY: The waker data is always guaranteed to point to the `Signal` we created
+                // above
+                while !unsafe { &*waker.data().cast::<Signal>() }
+                    .notified
+                    .swap(false, Ordering::Acquire)
+                {
                     thread::park();
                 }
             }
